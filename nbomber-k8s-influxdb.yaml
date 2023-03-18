@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: nbomber-infra
+  name: influxdb-creds
+type: Opaque
+stringData:
+  INFLUXDB_DB: nbomber
+  INFLUXDB_USER: user
+  INFLUXDB_READ_USER: readonly
+  INFLUXDB_USER_PASSWORD: admin123
+  INFLUXDB_ADMIN_USER: root
+  INFLUXDB_ADMIN_USER_PASSWORD: admin123
+  INFLUXDB_HOST: influxdb
+  INFLUXDB_HTTP_AUTH_ENABLED: "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: nbomber-infra  
+  name: influxdb-pvc
+  labels:
+    app: influxdb
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nbomber-infra  
+  name: influxdb
+  labels:
+    app: influxdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      containers:
+      - envFrom:
+        - secretRef:
+            name: influxdb-creds
+        image: influxdb:1.8.1
+        name: influxdb
+        volumeMounts:
+        - mountPath: /var/lib/influxdb
+          name: var-lib-influxdb
+      volumes:
+      - name: var-lib-influxdb
+        persistentVolumeClaim:
+          claimName: influxdb-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:  
+  name: influxdb
+  namespace: nbomber-infra
+  labels:
+    app: influxdb
+spec:
+  ports:
+  - port: 8086
+    protocol: TCP
+    targetPort: 8086
+  selector:
+    app: influxdb
+  type: ClusterIP          

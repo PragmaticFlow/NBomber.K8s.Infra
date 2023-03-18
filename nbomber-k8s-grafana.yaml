@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: nbomber-infra
+  name: grafana-creds
+type: Opaque
+stringData:
+  GF_SECURITY_ADMIN_USER: admin
+  GF_SECURITY_ADMIN_PASSWORD: admin123
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: nbomber-infra
+  name: graf-data-dir-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nbomber-infra  
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - envFrom:
+        - secretRef:
+            name: grafana-creds
+        image: grafana/grafana:8.5.2
+        name: grafana
+        volumeMounts:
+          - name: data-dir
+            mountPath: /var/lib/grafana/
+      securityContext:
+        fsGroup: 472
+      volumes:
+       - name: data-dir
+         persistentVolumeClaim:
+           claimName: graf-data-dir-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:      
+  namespace: nbomber-infra
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  ports:
+  - port: 3000
+    name: http
+    targetPort: 3000
+  selector:
+    app: grafana
+  type: LoadBalancer                       
