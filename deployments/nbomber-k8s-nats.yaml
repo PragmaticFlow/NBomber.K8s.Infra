@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   namespace: nbomber-infra
   name: nats
+  labels:
+    app: nats
 spec:
   replicas: 1
   selector:
@@ -25,9 +27,11 @@ kind: Service
 metadata:
   namespace: nbomber-infra
   name: nats
+  labels:
+    app: nats
 spec:
   selector:
     app: nats
   ports:
     - port: 4222
-  type: ClusterIP                
+  type: LoadBalancer                
