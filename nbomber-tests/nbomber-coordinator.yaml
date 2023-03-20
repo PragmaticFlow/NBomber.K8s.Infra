@@ -1,0 +1,21 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nbomber-coordinator
+  namespace: nbomber-tests
+  labels:
+    app: nbomber-coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nbomber-coordinator
+  template:
+    metadata:
+      labels:
+        app: nbomber-coordinator
+    spec:
+      containers:
+        - name: nbomber-coordinator
+          image: registry.digitalocean.com/nbomber-registry/nbomber:1.0.0
+          args: ["--config", "k8s/coordinator-config.json", "--infra", "k8s/infra-config.json", "--license", "YOUR_LICENSE_KEY"]

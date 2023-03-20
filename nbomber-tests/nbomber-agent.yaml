@@ -1,0 +1,21 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nbomber-agent
+  namespace: nbomber-tests
+  labels:
+    app: nbomber-agent
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nbomber-agent
+  template:
+    metadata:
+      labels:
+        app: nbomber-agent
+    spec:
+      containers:
+        - name: nbomber-agent
+          image: registry.digitalocean.com/nbomber-registry/nbomber:1.0.0
+          args: ["--config", "k8s/agent-config.json", "--infra", "k8s/infra-config.json"]
