@@ -34,4 +34,4 @@ spec:
     app: nats
   ports:
     - port: 4222
-  type: LoadBalancer                
+  type: ClusterIP                
