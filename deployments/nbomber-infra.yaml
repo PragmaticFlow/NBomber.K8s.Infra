@@ -1,0 +1,203 @@
+# ------------------------------------ 
+# ------------ Grafana  
+# ------------------------------------
+
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: nbomber-infra
+  name: grafana-creds
+type: Opaque
+stringData:
+  GF_SECURITY_ADMIN_USER: admin
+  GF_SECURITY_ADMIN_PASSWORD: admin123
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: nbomber-infra
+  name: graf-data-dir-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nbomber-infra  
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - envFrom:
+        - secretRef:
+            name: grafana-creds
+        image: grafana/grafana:8.5.2
+        name: grafana
+        volumeMounts:
+          - name: data-dir
+            mountPath: /var/lib/grafana/
+      securityContext:
+        fsGroup: 472
+      volumes:
+       - name: data-dir
+         persistentVolumeClaim:
+           claimName: graf-data-dir-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:      
+  namespace: nbomber-infra
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  ports:
+  - port: 3000
+    name: http
+    targetPort: 3000
+  selector:
+    app: grafana
+  type: LoadBalancer                       
+
+# ------------------------------------ 
+# ------------ InfluxDB  
+# ------------------------------------ 
+
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: nbomber-infra
+  name: influxdb-creds
+type: Opaque
+stringData:
+  INFLUXDB_DB: nbomber
+  INFLUXDB_READ_USER: readonly
+  INFLUXDB_USER: user  
+  INFLUXDB_USER_PASSWORD: user123
+  INFLUXDB_ADMIN_USER: admin
+  INFLUXDB_ADMIN_USER_PASSWORD: admin123
+  INFLUXDB_HOST: influxdb
+  INFLUXDB_HTTP_AUTH_ENABLED: "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: nbomber-infra  
+  name: influxdb-pvc
+  labels:
+    app: influxdb
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nbomber-infra  
+  name: influxdb
+  labels:
+    app: influxdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      containers:
+      - envFrom:
+        - secretRef:
+            name: influxdb-creds
+        image: influxdb:1.8.1
+        name: influxdb
+        volumeMounts:
+        - mountPath: /var/lib/influxdb
+          name: var-lib-influxdb
+      volumes:
+      - name: var-lib-influxdb
+        persistentVolumeClaim:
+          claimName: influxdb-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:  
+  name: influxdb
+  namespace: nbomber-infra
+  labels:
+    app: influxdb
+spec:
+  ports:
+  - port: 8086
+    protocol: TCP
+    targetPort: 8086
+  selector:
+    app: influxdb
+  type: ClusterIP          
+
+# ------------------------------------ 
+# ------------ NATS  
+# ------------------------------------  
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nbomber-infra
+  name: nats
+  labels:
+    app: nats
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+        - name: nats
+          image: nats:2.9.6
+          ports:
+            - containerPort: 4222
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: nbomber-infra
+  name: nats
+  labels:
+    app: nats
+spec:
+  selector:
+    app: nats
+  ports:
+    - port: 4222
+  type: ClusterIP                
